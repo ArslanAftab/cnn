@@ -6,11 +6,11 @@ class Node():
     def __init__(self, name) -> None:
         self.summation = 0
         self.output = 0
-        self.bias = 0
+        self.bias = 0 
         self.weights = []
         self.name = name
-        self.local_gradient = 0
-
+        self.delta = 0
+        
     def __str__(self) -> str:
         str = f'{self.name},\nweights:\n'
         for weight in self.weights:
@@ -105,41 +105,41 @@ class Network():
         return result
 
     def backward_pass(self, real_output, prediction, learning_rate) -> None:
-        # Perform backprop for output layer
-        output_layer = self.layers[-1]
-        last_hidden_layer = self.layers[-2]
-        for i, node in enumerate(output_layer.nodes):
-            node.local_gradient = (real_output[i] -prediction[i]) * derivative[output_layer.activation_func](node.summation)
-            node.bias += learning_rate*node.local_gradient
-            for weight in  node.weights:
-                
+        # Traverse layer by layer in reverse, excluding input layer
+        for layer_num in range(self.width-1, 0, -1):
+            # Grab current layer and prev layer
+            layer = self.layers[layer_num]
+            prev_layer = self.layers[layer_num-1]
 
-        # Start at first hidden layer, adjust weights
-        for i in range(self.width-2, 0, -1):
-            layer = self.layers[i]
-            for node in layer.nodes:
-                print(node)
+            # Grab derivative of activation func
+            func = layer.activation_func
+            d_func = derivative[func]
+            
+            # Local gradient for output layer is calculated 
+            if layer_num == self.width-1:
+                for node_num, node in enumerate(layer.nodes):
+                    # Set gradient and bias for each node in output layer
+                    node.delta = (real_output[node_num] -prediction[node_num]) * d_func(node.summation)
+                    node.bias += learning_rate * node.delta
+                    # Adjust all incoming weights for node
+                    for weight_num, weight in enumerate(node.weights):
+                        node.weights[weight_num] += learning_rate * node.delta * prev_layer.nodes[weight_num].output
 
-        
-        # Compute gradient, weights and bias for each node in output layer
-        output_layer = self.layers[-1]
-        for i, node in enumerate(output_layer.nodes):
-            node.local_gradient = (real_output[i] -prediction[i]) * derivative[output_layer.activation_func](node.summation)
-            node.bias += learning_rate*node.local_gradient
-            for j, weight in enumerate(node.weights):
-                node.weights[j] += learning_rate * node.local_gradient * node.output
+            # Local gradient for other layers
+            else:
+                for node_num, node in enumerate(layer.nodes):
+                    # Set gradient and bias for each node in hidden layer
+                    next_layer = self.layers[layer_num+1]
+                    sum = 0
+                    for j, next_node in enumerate(next_layer.nodes):
+                        sum += next_node.delta * next_node.weights[j]
 
+                    node.delta = sum * d_func(node.summation)
+                    node.bias += learning_rate * node.delta
 
-        # # Treat hidden layers in reverse, excluding input and output layer
-        # for i in range(self.width-2, 0, -1):
-        #     layer = self.layers[i]
-        #     next_layer = self.layers[i+1]
-        #     prev_layer = self.layers[i-1]
-        #     for node in layer.nodes:
-        #         for j, other_node in enumerate(next_layer.nodes):
-        #             node.local_gradient += other_node.local_gradient * node.outgoing_weights[j]
-        #         node.local_gradient *= derivative[layer.activation_func](node.summation)
-        #         # Update weights leading into this node
+                    # Adjust all incoming weights for node
+                    for weight_num, weight in enumerate(node.weights):
+                        node.weights[weight_num] += learning_rate * node.delta * prev_layer.nodes[weight_num].output
 
     def categorize_result(self, result) -> list:
         output_layer = self.layers[-1]
@@ -208,4 +208,4 @@ if __name__ == "__main__":
         dataTrain = irisData[:trainingDataSize]
         dataTest  = irisData[trainingDataSize:]
 
-        net.train([dataTrain[1]], 1, 0.01)
+        net.train([dataTrain[1]], 10, 0.1)

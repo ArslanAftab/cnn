@@ -10,7 +10,7 @@ class Node():
         self.weights = []
         self.name = name
         self.delta = 0
-        
+
     def __str__(self) -> str:
         str = f'{self.name},\nweights:\n'
         for weight in self.weights:
@@ -57,7 +57,7 @@ class Network():
             # Every node except those in input layer has weights.
             prev_layer_size = self.layers[i].size
             for node in layer.nodes:
-                node.weights = [random.random() for j in range(prev_layer_size)]
+                node.weights = [random.uniform(0,0.5) for j in range(prev_layer_size)]
 
     def initialise_biases(self) -> None:
         for i, layer in enumerate(self.layers[1:]):
@@ -74,8 +74,8 @@ class Network():
                 
                 # Encode classification 
                 output = self.categorize_result(output)
-
                 prediction = self.forward_pass(params)
+                print(f'{output}: {prediction}')
                 self.backward_pass(output, prediction, learning_rate)
 
     def forward_pass(self, params) -> list:
@@ -87,14 +87,18 @@ class Network():
         
         # Start from inputs and propogate values across layers
         for i, layer in enumerate(self.layers[1:]): # No need to popogate from output layer
+            # print(f'At layer: {i+1}')
             prev_layer = self.layers[i]
             # Project values from prev layer onto current layer
             for node in layer.nodes:
+                # print(f'Node {node.name} = {node.bias}', end=" ")
                 node.summation += node.bias
                 for j, prev_node in enumerate(prev_layer.nodes):
+                    # print(f'+ {prev_node.summation}*{node.weights[j]} ({prev_node.name}*{j}th weight)', end=" ")
                     node.summation += prev_node.summation * node.weights[j]
                 
                 # # Activation step
+                # print(f' {node.summation} Activate to: {layer.activation_func(node.summation)}')
                 node.output = layer.activation_func(node.summation)
         
         # Output results as list
@@ -105,41 +109,66 @@ class Network():
         return result
 
     def backward_pass(self, real_output, prediction, learning_rate) -> None:
-        # Traverse layer by layer in reverse, excluding input layer
-        for layer_num in range(self.width-1, 0, -1):
-            # Grab current layer and prev layer
-            layer = self.layers[layer_num]
-            prev_layer = self.layers[layer_num-1]
+        # Grab output layer
+        output_layer = self.layers[-1]
 
-            # Grab derivative of activation func
-            func = layer.activation_func
-            d_func = derivative[func]
-            
-            # Local gradient for output layer is calculated 
-            if layer_num == self.width-1:
-                for node_num, node in enumerate(layer.nodes):
-                    # Set gradient and bias for each node in output layer
-                    node.delta = (real_output[node_num] -prediction[node_num]) * d_func(node.summation)
-                    node.bias += learning_rate * node.delta
-                    # Adjust all incoming weights for node
-                    for weight_num, weight in enumerate(node.weights):
-                        node.weights[weight_num] += learning_rate * node.delta * prev_layer.nodes[weight_num].output
+        # Find delta's for the output layer
+        for node_index, node in enumerate(output_layer.nodes):
+            node.delta = self.find_delta_output(node, real_output[node_index], prediction[node_index], output_layer.activation_func)
+        for layer_index in range(self.width-1, 0, -1):
+            layer = self.layers[layer_index]
 
-            # Local gradient for other layers
-            else:
-                for node_num, node in enumerate(layer.nodes):
-                    # Set gradient and bias for each node in hidden layer
-                    next_layer = self.layers[layer_num+1]
-                    sum = 0
-                    for j, next_node in enumerate(next_layer.nodes):
-                        sum += next_node.delta * next_node.weights[j]
+            for node_index, node in enumerate(layer.nodes):
+                for weight_index, weight in enumerate(node.weights):
+                    prev_output = self.layers[layer_index-1].nodes[weight_index].output
+                    
+                    # SGD
+                    # Update weight
+                    node.weights[weight_index] += learning_rate * node.delta * prev_output
 
-                    node.delta = sum * d_func(node.summation)
-                    node.bias += learning_rate * node.delta
+                    # Update bias
+                    node.bias += learning_rate*node.delta
+            if layer_index > 1:
+                prev_layer = self.layers[layer_index-1]
+                for prev_layer_node_index, prev_layer_node in enumerate(prev_layer.nodes):
+                    prev_layer_node.delta = self.find_delta_hidden(layer_index, prev_layer_node_index)
 
-                    # Adjust all incoming weights for node
-                    for weight_num, weight in enumerate(node.weights):
-                        node.weights[weight_num] += learning_rate * node.delta * prev_layer.nodes[weight_num].output
+    def find_delta_output(self, node, real, pred, activation_func):
+        print(f'Comparing {real} to {pred}')
+        error = real - pred
+        print(f'Error amount is {real- pred}')
+        
+        d_activation = derivative[activation_func]
+        delta = error * d_activation(node.output)
+        print(f'Calculation: {error}*derivative_activation({node.name}.output)')
+        print(f'Delta is: {delta}')
+        return delta
+
+    def find_delta_hidden(self, layer_index, prev_layer_node_index):
+        current_layer = self.layers[layer_index-1]
+        current_node = current_layer.nodes[prev_layer_node_index]
+        current_node_summation = current_node.summation
+        
+        next_layer = self.layers[layer_index]
+        s = 0
+
+        for node in next_layer.nodes:
+            weight = node.weights[prev_layer_node_index]
+            node_delta = node.delta
+            print(node_delta)
+        return 1
+        # current_value = node.summation
+        # current_layer = self.layers[layer_index-1]
+        # next_layer = self.layers[layer_index]
+        # d_activation = derivative[current_layer.activation_func]
+        # summation = 0
+
+        # # Iterate every node in next layer
+        # for layer_node in next_layer.nodes:
+        #     summation += layer_node.weights[prev_layer_node_index]*layer_node.delta
+
+        # delta = summation * d_activation(current_value)
+        # return delta
 
     def categorize_result(self, result) -> list:
         output_layer = self.layers[-1]
@@ -164,13 +193,13 @@ def logistic_sigmoid(x:float) -> float:
   return 1 / (1 + math.exp(-x))
 
 def tanh(x:float) -> float:
-    return (math.exp(x)-math.exp(-x))/(math.exp(x)+math.exp(-x))
+    return math.tanh(x)
 
 def d_logistic_sigmoid(x:float) -> float:
     return (1 - logistic_sigmoid(x)) * logistic_sigmoid(x)
 
 def d_tanh(x:float) -> float: 
-    return  1 - tanh(x)**2
+    return  1.0 - math.tanh(x)**2
 
 derivative = {
     logistic_sigmoid: d_logistic_sigmoid,
@@ -182,7 +211,7 @@ if __name__ == "__main__":
     net = Network([4,5,3,3], [None,logistic_sigmoid,logistic_sigmoid,logistic_sigmoid])
     net.initialise_weights()
     net.initialise_biases()
-
+    print(net)
     with open('IrisData.txt', mode='r') as file:
         csv_reader = csv.reader(file, delimiter=',')
         irisData = list(csv_reader)
@@ -208,4 +237,4 @@ if __name__ == "__main__":
         dataTrain = irisData[:trainingDataSize]
         dataTest  = irisData[trainingDataSize:]
 
-        net.train([dataTrain[1]], 10, 0.1)
+        net.train([dataTrain[1]], 10, 0.01)

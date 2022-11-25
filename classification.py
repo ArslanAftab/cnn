@@ -134,41 +134,30 @@ class Network():
                     prev_layer_node.delta = self.find_delta_hidden(layer_index, prev_layer_node_index)
 
     def find_delta_output(self, node, real, pred, activation_func):
-        print(f'Comparing {real} to {pred}')
+        # print(f'Comparing {real} to {pred}')
         error = real - pred
-        print(f'Error amount is {real- pred}')
+        # print(f'Error amount is {real- pred}')
         
         d_activation = derivative[activation_func]
         delta = error * d_activation(node.output)
-        print(f'Calculation: {error}*derivative_activation({node.name}.output)')
-        print(f'Delta is: {delta}')
+        # print(f'Calculation: {error}*derivative_activation({node.name}.output)')
+        # print(f'Delta is: {delta}')
         return delta
 
     def find_delta_hidden(self, layer_index, prev_layer_node_index):
         current_layer = self.layers[layer_index-1]
         current_node = current_layer.nodes[prev_layer_node_index]
-        current_node_summation = current_node.summation
-        
+        d_activation = derivative[current_layer.activation_func]
         next_layer = self.layers[layer_index]
         s = 0
 
         for node in next_layer.nodes:
             weight = node.weights[prev_layer_node_index]
             node_delta = node.delta
-            print(node_delta)
-        return 1
-        # current_value = node.summation
-        # current_layer = self.layers[layer_index-1]
-        # next_layer = self.layers[layer_index]
-        # d_activation = derivative[current_layer.activation_func]
-        # summation = 0
-
-        # # Iterate every node in next layer
-        # for layer_node in next_layer.nodes:
-        #     summation += layer_node.weights[prev_layer_node_index]*layer_node.delta
-
-        # delta = summation * d_activation(current_value)
-        # return delta
+            s+= weight * node_delta
+        # print(f'Sum of delta {s}')
+        delta = s * d_activation(current_node.output)
+        return delta
 
     def categorize_result(self, result) -> list:
         output_layer = self.layers[-1]
@@ -237,4 +226,4 @@ if __name__ == "__main__":
         dataTrain = irisData[:trainingDataSize]
         dataTest  = irisData[trainingDataSize:]
 
-        net.train([dataTrain[1]], 10, 0.01)
+        net.train([dataTrain[1]], 5, 0.01)

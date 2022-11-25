@@ -109,17 +109,21 @@ class Network():
         # Start from inputs and propogate values across layers
         # No need to popogate from output layer
         for i, layer in enumerate(self.layers[1:]):
+            # Debug
             # print(f'At layer: {i+1}')
             prev_layer = self.layers[i]
             # Project values from prev layer onto current layer
             for node in layer.nodes:
+                # Debug
                 # print(f'Node {node.name} = {node.bias}', end=" ")
                 node.summation += node.bias
                 for j, prev_node in enumerate(prev_layer.nodes):
+                    # Debug
                     # print(f'+ {prev_node.summation}*{node.weights[j]} ({prev_node.name}*{j}th weight)', end=" ")
                     node.summation += prev_node.summation * node.weights[j]
 
                 # Activation step
+                # Debug
                 # print(f' {node.summation} Activate to: {layer.activation_func(node.summation)}')
                 node.output = layer.activation_func(node.summation)
 
@@ -183,7 +187,7 @@ class Network():
     def find_delta_hidden(self, layer_index, prev_layer_node_index):
         current_layer = self.layers[layer_index-1]
         current_node = current_layer.nodes[prev_layer_node_index]
-        print(f'Local hidden delta: {layer_index-1},{current_node.name}')
+        # print(f'Local hidden delta: {layer_index-1},{current_node.name}')
         d_activation = derivative[current_layer.activation_func]
         next_layer = self.layers[layer_index]
         s = 0

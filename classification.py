@@ -147,23 +147,23 @@ class Network():
         prev_layer_x_out = []
 
         for node in prev_layer.nodes:
-            print(node)
+            # print(node)
             prev_layer_x_out.append(node.output)
 
-        print('_____________________________________________')
+        # print('_____________________________________________')
         for j, node in enumerate(output_layer.nodes):
-            print(node)
+            # print(node)
             # Find delta for each node in output layer
             error = real_output[j] - prediction[j]
             deriv_func = derivative[output_layer.activation_func]
             summation = node.summation
             # print(f'{node.name} gradient = {real_output[j]} - {prediction[j]} * deriv({node.summation})')
             node.delta = self.output_node_delta(error, deriv_func, summation)
-            print(node)
+            # print(node)
 
             # Use delta to find weights for each node in output layer
             for i, weight in enumerate(node.weights):
-                print(f'Weight = {weight} + {learning_rate} * {node.delta} * {prev_layer_x_out[i]}')
+                # print(f'Weight = {weight} + {learning_rate} * {node.delta} * {prev_layer_x_out[i]}')
                 node.weights[i] += learning_rate * \
                     node.delta * prev_layer_x_out[i]
 
@@ -172,7 +172,6 @@ class Network():
 
             # print(node)
 
-        return 0
         # Iterate hidden layers in reverse
         for s in range(self.width-2, 0, -1):
             # Grab the layer we want to update delta, weights, bias for

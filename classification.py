@@ -189,37 +189,37 @@ class Network():
 
             # Grab the s+1th layer, needed to compute delta
             next_layer = self.layers[s+1]
-            # print(f'Fixing s = {s} using layer s+1 = {s+1} deltas')
+            print(f'Fixing s = {s} using layer s+1 = {s+1} deltas')
 
             for j, node in enumerate(hidden_layer.nodes):
                 # Find delta for each node in s-th hidden layer
-                # print(f'Delta for  node {j+1}')
+                print(f'Delta for  node {j+1}')
                 deriv_func = derivative[hidden_layer.activation_func]
                 node.delta = self.hidden_node_delta(j, node, next_layer, deriv_func)
+            break
+                # # Use delta to find weight for each node in hidden layer
+                # for i, weight in enumerate(node.weights):
+                #     # print(f'Weight = {weight} + {learning_rate} * {node.delta} * {prev_layer_x_out[i]}')
+                #     node.weights[i] += learning_rate * \
+                #         node.delta * prev_layer_x_out[i]
 
-                # Use delta to find weight for each node in hidden layer
-                for i, weight in enumerate(node.weights):
-                    # print(f'Weight = {weight} + {learning_rate} * {node.delta} * {prev_layer_x_out[i]}')
-                    node.weights[i] += learning_rate * \
-                        node.delta * prev_layer_x_out[i]
-
-                # Use delta to find bias for each node in hidden layer
-                node.bias += learning_rate * node.delta
+                # # Use delta to find bias for each node in hidden layer
+                # node.bias += learning_rate * node.delta
 
     def output_node_delta(self, error, deriv_func, summation):
         return error * deriv_func(summation)
 
     def hidden_node_delta(self, j, node , next_layer, deriv_func):
         linear_sum = 0
-        # print(node)
+        print(node)
         for k, next_layer_node in enumerate(next_layer.nodes):
-            # print(f'Using: {next_layer_node}')
+            print(f'Using: {next_layer_node}')
             node_delta = next_layer_node.delta
             weight = next_layer_node.weights[j]
-            # print(f'Summing {node_delta} * {weight}')
+            print(f'Summing {node_delta} * {weight} = {node_delta*weight}')
             linear_sum += node_delta * weight
         delta_value = linear_sum * deriv_func(node.output)
-        # print(f'Delta = {linear_sum} * deriv({node.output}) = {delta_value}')
+        print(f'Delta = {linear_sum} * deriv({node.output}) = {delta_value}')
         return delta_value
 
     def categorize_result(self, result) -> list:
@@ -245,18 +245,14 @@ class Network():
 def logistic_sigmoid(v: float) -> float:
     return 1 / (1 + math.exp(-v*0.5))
 
-
 def tanh(x: float) -> float:
     return math.tanh(x)
-
 
 def d_logistic_sigmoid(x: float) -> float:
     return (1 - logistic_sigmoid(x)) * logistic_sigmoid(x)
 
-
 def d_tanh(x: float) -> float:
     return 1.0 - math.tanh(x)**2
-
 
 def leakyRelu(x: float) -> float:
     if x < 0:
@@ -264,13 +260,11 @@ def leakyRelu(x: float) -> float:
     else:
         return x
 
-
 def d_leakyRelu(x: float) -> float:
     if x < 0:
         return 0.01
     else:
         return 1
-
 
 derivative = {
     logistic_sigmoid: d_logistic_sigmoid,

@@ -278,7 +278,6 @@ if __name__ == "__main__":
     net = Network([4, 5, 3, 3], [None, leakyRelu, leakyRelu, tanh])
     net.initialise_weights()
     net.initialise_biases()
-    print(net)
     with open('IrisData.txt', mode='r') as file:
         csv_reader = csv.reader(file, delimiter=',')
         irisData = list(csv_reader)
@@ -304,4 +303,4 @@ if __name__ == "__main__":
         dataTrain = irisData[:trainingDataSize]
         dataTest = irisData[trainingDataSize:]
 
-        net.train([dataTrain[1]], 1, 0.001)
+        net.train(dataTrain, 1, 0.001)
